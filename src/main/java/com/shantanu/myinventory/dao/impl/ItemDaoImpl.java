@@ -9,6 +9,7 @@ import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +37,25 @@ public class ItemDaoImpl implements ItemDao {
 	public Items addItem(Items items) {
 		System.out.println("Items = "+items.getItemName());
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
-		session.save(items);
-		session.getTransaction().commit();
+		
+		Transaction tx = null;
+		
+		try{
+		
+			tx = session.beginTransaction();
+			session.save(items);
+			tx.commit();
+		
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 		return null;
 	}
 
@@ -48,22 +65,34 @@ public class ItemDaoImpl implements ItemDao {
 		HashMap<String,Float> allItems = new HashMap<String,Float>();
 		
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
 		
-		Query query = session.createQuery("select itemName, rate from Items where outlet like :storeName");
-		query.setParameter("storeName", storeName);
-		List data = query.list();
-		
-		for (Iterator it = data.iterator(); it.hasNext(); ) {
-            Object[] myResult = (Object[]) it.next();
-            String itemName = (String) myResult[0];
-            Float rate = (Float) myResult[1];
-            allItems.put(itemName, rate);
-            //System.out.println( "ItemName = " + itemName + " rate = " + rate );
-         }
-		
-		session.getTransaction().commit();
-		
+		Transaction tx = null;
+		try{
+			tx = session.beginTransaction();
+			
+			Query query = session.createQuery("select itemName, rate from Items where outlet like :storeName");
+			query.setParameter("storeName", storeName);
+			List data = query.list();
+			
+			for (Iterator it = data.iterator(); it.hasNext(); ) {
+	            Object[] myResult = (Object[]) it.next();
+	            String itemName = (String) myResult[0];
+	            Float rate = (Float) myResult[1];
+	            allItems.put(itemName, rate);
+	            //System.out.println( "ItemName = " + itemName + " rate = " + rate );
+	         }
+			
+			tx.commit();
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 		return allItems;
 		
 		
@@ -73,23 +102,36 @@ public class ItemDaoImpl implements ItemDao {
 	public ArrayList<StoreItems> getItemsByVendorName1(String storeName) {
 		ArrayList<StoreItems> allItems = new ArrayList<StoreItems>();
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
+		Transaction tx = null;
 		
-		Query query = session.createQuery("select itemName, rate, uom from Items where outlet like :storeName");
-		query.setParameter("storeName", storeName);
-		ArrayList data = (ArrayList) query.list();
-		
-		for (Iterator it = data.iterator(); it.hasNext(); ) {
-            Object[] myResult = (Object[]) it.next();
-            String itemName = (String) myResult[0];
-            Float rate = (Float) myResult[1];
-            String uom = (String) myResult[2];
-            
-            allItems.add(new StoreItems(itemName,rate,uom));
-            
-         }
-		
-		session.getTransaction().commit();
+		try{
+			tx = session.beginTransaction();
+			
+			Query query = session.createQuery("select itemName, rate, uom from Items where outlet like :storeName");
+			query.setParameter("storeName", storeName);
+			ArrayList data = (ArrayList) query.list();
+			
+			for (Iterator it = data.iterator(); it.hasNext(); ) {
+	            Object[] myResult = (Object[]) it.next();
+	            String itemName = (String) myResult[0];
+	            Float rate = (Float) myResult[1];
+	            String uom = (String) myResult[2];
+	            
+	            allItems.add(new StoreItems(itemName,rate,uom));
+	            
+	         }
+			
+			tx.commit();
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 		return allItems;
 	}
 
@@ -97,28 +139,45 @@ public class ItemDaoImpl implements ItemDao {
 	public void addReceipts(ArrayList<DataFromClient> receipts) {
 		
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
 		
-		for(DataFromClient r : receipts){
-			Receipt receipt = new Receipt();
-			receipt.setCustomerName(r.getCustomerName());
-			receipt.setReceiptOutletName(r.getReceiptOutletName());
-			receipt.setDate(r.getReceiptDate());
-			receipt.setItemName(r.getItemName());
-			receipt.setQuantity(r.getQuantity());
-			receipt.setAmount(r.getRate());
-			
-			System.out.println("Customer name = "+receipt.getCustomerName()+
-					   " Items name = "+receipt.getItemName() + 
-					   " quantity = "+receipt.getQuantity() +
-					   " rate = "+receipt.getAmount() +
-					   " date = "+receipt.getDate() +
-					   " outlet = "+receipt.getReceiptOutletName());
-			session.save(receipt);
+		Transaction tx = null;
+		
+		try{
+				tx = session.beginTransaction();
+				
+				for(DataFromClient r : receipts){
+					Receipt receipt = new Receipt();
+					receipt.setCustomerName(r.getCustomerName());
+					receipt.setReceiptOutletName(r.getReceiptOutletName());
+					receipt.setDate(r.getReceiptDate());
+					receipt.setItemName(r.getItemName());
+					receipt.setQuantity(r.getQuantity());
+					receipt.setAmount(r.getRate());
+					
+					System.out.println("Customer name = "+receipt.getCustomerName()+
+							   " Items name = "+receipt.getItemName() + 
+							   " quantity = "+receipt.getQuantity() +
+							   " rate = "+receipt.getAmount() +
+							   " date = "+receipt.getDate() +
+							   " outlet = "+receipt.getReceiptOutletName());
+					session.save(receipt);
+					
+					
+				}
+				
+				
+				tx.commit();
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
 		}
 		
-		
-		session.getTransaction().commit();
 		
 	}
 
@@ -139,27 +198,41 @@ public class ItemDaoImpl implements ItemDao {
 	public ArrayList<StockTransfer> getAllStockTransfer(String storeName) {
 		ArrayList<StockTransfer> stocks = new ArrayList<StockTransfer>();
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
 		
-		Query query = session.createQuery("select transferId, sourceVendor, date, itemName, quantity from StockTransfer where targetVendor like :storeName and status = :status");
-		query.setParameter("storeName", storeName);
-		query.setParameter("status","Initiated");
-		ArrayList data = (ArrayList) query.list();
+		Transaction tx = null;
 		
-		for (Iterator it = data.iterator(); it.hasNext(); ) {
-            Object[] myResult = (Object[]) it.next();
-            int transferId = (Integer) myResult[0];
-            String sourceVendor = (String) myResult[1];
-            String date = (String) myResult[2];
-            String itemName = (String) myResult[3];
-            Float quantity = (Float) myResult[4];
-            String targetVendor = storeName;
-            String status = "Initiated";
-            stocks.add(new StockTransfer(transferId,sourceVendor,targetVendor,date,itemName,quantity,status));
-            
-         }
-		
-		session.getTransaction().commit();
+		try{
+			tx = session.beginTransaction();
+			
+			Query query = session.createQuery("select transferId, sourceVendor, date, itemName, quantity from StockTransfer where targetVendor like :storeName and status = :status");
+			query.setParameter("storeName", storeName);
+			query.setParameter("status","Initiated");
+			ArrayList data = (ArrayList) query.list();
+			
+			for (Iterator it = data.iterator(); it.hasNext(); ) {
+	            Object[] myResult = (Object[]) it.next();
+	            int transferId = (Integer) myResult[0];
+	            String sourceVendor = (String) myResult[1];
+	            String date = (String) myResult[2];
+	            String itemName = (String) myResult[3];
+	            Float quantity = (Float) myResult[4];
+	            String targetVendor = storeName;
+	            String status = "Initiated";
+	            stocks.add(new StockTransfer(transferId,sourceVendor,targetVendor,date,itemName,quantity,status));
+	            
+	         }
+			
+			tx.commit();
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 
 		return stocks;
 		
@@ -171,51 +244,77 @@ public class ItemDaoImpl implements ItemDao {
 		
 		ArrayList<Integer> ids = transferIds;
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
 		
-		
-		for(Integer id : transferIds){
-			
-			System.out.println("Confirmed Id is = "+id);
-			Query query = session.createQuery("update StockTransfer set status = :status" +
-					" where transferId = :transferId");
-			
-			query.setParameter("status", "Confirmed");
-			
-			query.setParameter("transferId", id);
-			query.executeUpdate();
+		Transaction tx = null;
+		try{
+				tx = session.beginTransaction();
+				
+				
+				for(Integer id : transferIds){
+					
+					System.out.println("Confirmed Id is = "+id);
+					Query query = session.createQuery("update StockTransfer set status = :status" +
+							" where transferId = :transferId");
+					
+					query.setParameter("status", "Confirmed");
+					
+					query.setParameter("transferId", id);
+					query.executeUpdate();
+				}
+				
+				session.getTransaction().commit();
 		}
-		
-		session.getTransaction().commit();
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 	}
 
 	@Override
 	public void updateReceipts(int id,String customerName,String itemName,String quantity,String receiptOutletName,String amount,String date) {
 		
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
-		int updatedQuantity = Integer.parseInt(quantity);
-		int updatedAmount = Integer.parseInt(amount);
 		
-		Query query = session.createQuery("update Receipt set "+
-						"customerName = :customerName," +
-						"itemName = :itemName," +
-						"quantity = :quantity,"+
-						"receiptOutletName = :receiptOutletName,"+
-						"amount = :amount,"+
-						"date = :date"+
-				        " where id = :id");
-		
-		query.setParameter("id", id);
-		query.setParameter("customerName", customerName);
-		query.setParameter("itemName", itemName);
-		query.setParameter("quantity", updatedQuantity);
-		query.setParameter("receiptOutletName", receiptOutletName);
-		query.setParameter("amount", updatedAmount);
-		query.setParameter("date", date);
-		query.executeUpdate();
-		
-		session.getTransaction().commit();
+		Transaction tx = null;
+		try {
+				tx = session.beginTransaction();
+				int updatedQuantity = Integer.parseInt(quantity);
+				int updatedAmount = Integer.parseInt(amount);
+				
+				Query query = session.createQuery("update Receipt set "+
+								"customerName = :customerName," +
+								"itemName = :itemName," +
+								"quantity = :quantity,"+
+								"receiptOutletName = :receiptOutletName,"+
+								"amount = :amount,"+
+								"date = :date"+
+						        " where id = :id");
+				
+				query.setParameter("id", id);
+				query.setParameter("customerName", customerName);
+				query.setParameter("itemName", itemName);
+				query.setParameter("quantity", updatedQuantity);
+				query.setParameter("receiptOutletName", receiptOutletName);
+				query.setParameter("amount", updatedAmount);
+				query.setParameter("date", date);
+				query.executeUpdate();
+				
+				tx.commit();
+		}
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 	}
 
 	@Override
@@ -229,12 +328,26 @@ public class ItemDaoImpl implements ItemDao {
 	public void outGoingStockTransfers(ArrayList<StockTransfer> stockList) {
 		
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
 		
-		for(StockTransfer st: stockList){
-			session.save(st);
+		Transaction tx =  null;
+		
+		try{
+			tx = session.beginTransaction();
+			
+			for(StockTransfer st: stockList){
+				session.save(st);
+			}
+			tx.commit();
 		}
-		session.getTransaction().commit();
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 		
 		
 	}
@@ -242,12 +355,24 @@ public class ItemDaoImpl implements ItemDao {
 	@Override
 	public void addBulkItems(ArrayList<Items> itemsList) {
 		Session session = sessionFactory.openSession();
-		session.beginTransaction();
-		
-		for(Items items: itemsList){
-			session.save(items);
+		Transaction tx = null;
+		try{
+			tx = session.beginTransaction();
+			
+			for(Items items: itemsList){
+				session.save(items);
+			}
+			tx.commit();
 		}
-		session.getTransaction().commit();
+		catch(Exception e){
+			if(tx != null){
+				tx.rollback();
+			}
+			throw e;
+		}
+		finally{
+			session.close();
+		}
 		
 	}
 	
